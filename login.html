@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Expense Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+        }
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+        .login-card {
+            background: rgba(30, 30, 50, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-header h1 {
+            background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        .login-header p {
+            color: #888;
+            font-size: 0.95rem;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: #ccc;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 15, 30, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        .form-group input::placeholder {
+            color: #666;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-error {
+            color: #f87171;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            min-height: 1.2em;
+            text-align: center;
+        }
+        .auth-message {
+            color: #888;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .auth-switch {
+            margin-top: 24px;
+            text-align: center;
+            color: #888;
+        }
+        .auth-switch button {
+            background: none;
+            border: none;
+            color: #818cf8;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 4px;
+        }
+        .auth-switch button:hover {
+            text-decoration: underline;
+        }
+        .auth-form {
+            display: none;
+        }
+        .auth-form.active {
+            display: block;
+        }
+        .forgot-password {
+            text-align: center;
+            margin-top: 16px;
+        }
+        .forgot-password button {
+            background: none;
+            border: none;
+            color: #818cf8;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .forgot-password button:hover {
+            text-decoration: underline;
+        }
+        .auth-success {
+            color: #4ade80;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 id="pageTitle">Expense Tracker</h1>
+                <p id="pageSubtitle">Sign in to your account</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active" autocomplete="on">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required placeholder="your@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" required placeholder="Password" autocomplete="current-password">
+                </div>
+                <div id="loginError" class="auth-error"></div>
+                <button type="submit" class="btn-primary">Sign In</button>
+                <div class="forgot-password">
+                    <button type="button" id="forgotPasswordBtn">Forgot Password?</button>
+                </div>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signupForm" class="auth-form" autocomplete="on">
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" name="email" required placeholder="your@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" name="new-password" required placeholder="Min 8 chars, upper, lower, number" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="signupPasswordConfirm">Confirm Password</label>
+                    <input type="password" id="signupPasswordConfirm" name="confirm-password" required placeholder="Confirm password" autocomplete="new-password">
+                </div>
+                <div id="signupError" class="auth-error"></div>
+                <button type="submit" class="btn-primary">Create Account</button>
+            </form>
+
+            <!-- Verification Form -->
+            <form id="verifyForm" class="auth-form" autocomplete="off">
+                <p class="auth-message">We sent a verification code to your email.</p>
+                <div class="form-group">
+                    <label for="verifyCode">Verification Code</label>
+                    <input type="text" id="verifyCode" required placeholder="Enter 6-digit code" autocomplete="one-time-code">
+                </div>
+                <div id="verifyError" class="auth-error"></div>
+                <button type="submit" class="btn-primary">Verify</button>
+            </form>
+
+            <!-- Forgot Password Form -->
+            <form id="forgotForm" class="auth-form" autocomplete="on">
+                <p class="auth-message">Enter your email and we'll send you a reset code.</p>
+                <div class="form-group">
+                    <label for="forgotEmail">Email</label>
+                    <input type="email" id="forgotEmail" name="email" required placeholder="your@email.com" autocomplete="email">
+                </div>
+                <div id="forgotError" class="auth-error"></div>
+                <button type="submit" class="btn-primary">Send Reset Code</button>
+            </form>
+
+            <!-- Reset Password Form -->
+            <form id="resetForm" class="auth-form" autocomplete="on">
+                <p class="auth-message">Enter the code from your email and your new password.</p>
+                <div class="form-group">
+                    <label for="resetCode">Reset Code</label>
+                    <input type="text" id="resetCode" required placeholder="Enter 6-digit code" autocomplete="one-time-code">
+                </div>
+                <div class="form-group">
+                    <label for="resetPassword">New Password</label>
+                    <input type="password" id="resetPassword" name="new-password" required placeholder="Min 8 chars, upper, lower, number" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="resetPasswordConfirm">Confirm New Password</label>
+                    <input type="password" id="resetPasswordConfirm" name="confirm-password" required placeholder="Confirm new password" autocomplete="new-password">
+                </div>
+                <div id="resetError" class="auth-error"></div>
+                <div id="resetSuccess" class="auth-success"></div>
+                <button type="submit" class="btn-primary">Reset Password</button>
+            </form>
+
+            <div class="auth-switch">
+                <span id="authSwitchText">Don't have an account?</span>
+                <button type="button" id="authSwitchBtn">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // AWS Configuration
+        const AWS_CONFIG = {
+            region: 'us-east-1',
+            userPoolId: 'us-east-1_ht0lMz8s1',
+            clientId: '2s7jrh68ad4obdlplq23tkls2h'
+        };
+
+        // Cognito setup
+        const poolData = {
+            UserPoolId: AWS_CONFIG.userPoolId,
+            ClientId: AWS_CONFIG.clientId
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        // Check if already logged in
+        const currentUser = userPool.getCurrentUser();
+        if (currentUser) {
+            currentUser.getSession((err, session) => {
+                if (!err && session.isValid()) {
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+        // DOM Elements
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const verifyForm = document.getElementById('verifyForm');
+        const forgotForm = document.getElementById('forgotForm');
+        const resetForm = document.getElementById('resetForm');
+        const loginError = document.getElementById('loginError');
+        const signupError = document.getElementById('signupError');
+        const verifyError = document.getElementById('verifyError');
+        const forgotError = document.getElementById('forgotError');
+        const resetError = document.getElementById('resetError');
+        const resetSuccess = document.getElementById('resetSuccess');
+        const authSwitchBtn = document.getElementById('authSwitchBtn');
+        const authSwitchText = document.getElementById('authSwitchText');
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSubtitle = document.getElementById('pageSubtitle');
+
+        let pendingUsername = null;
+        let currentMode = 'login';
+
+        function showLogin() {
+            currentMode = 'login';
+            loginForm.classList.add('active');
+            signupForm.classList.remove('active');
+            verifyForm.classList.remove('active');
+            forgotForm.classList.remove('active');
+            resetForm.classList.remove('active');
+            pageSubtitle.textContent = 'Sign in to your account';
+            authSwitchText.textContent = "Don't have an account?";
+            authSwitchBtn.textContent = 'Sign Up';
+            authSwitchBtn.style.display = 'inline';
+            loginError.textContent = '';
+        }
+
+        function showSignup() {
+            currentMode = 'signup';
+            loginForm.classList.remove('active');
+            signupForm.classList.add('active');
+            verifyForm.classList.remove('active');
+            forgotForm.classList.remove('active');
+            resetForm.classList.remove('active');
+            pageSubtitle.textContent = 'Create your account';
+            authSwitchText.textContent = 'Already have an account?';
+            authSwitchBtn.textContent = 'Sign In';
+            authSwitchBtn.style.display = 'inline';
+            signupError.textContent = '';
+        }
+
+        function showVerify() {
+            currentMode = 'verify';
+            loginForm.classList.remove('active');
+            signupForm.classList.remove('active');
+            verifyForm.classList.add('active');
+            forgotForm.classList.remove('active');
+            resetForm.classList.remove('active');
+            pageSubtitle.textContent = 'Verify your email';
+            authSwitchText.textContent = 'Back to';
+            authSwitchBtn.textContent = 'Sign In';
+            authSwitchBtn.style.display = 'inline';
+            verifyError.textContent = '';
+        }
+
+        function showForgot() {
+            currentMode = 'forgot';
+            loginForm.classList.remove('active');
+            signupForm.classList.remove('active');
+            verifyForm.classList.remove('active');
+            forgotForm.classList.add('active');
+            resetForm.classList.remove('active');
+            pageSubtitle.textContent = 'Reset your password';
+            authSwitchText.textContent = 'Back to';
+            authSwitchBtn.textContent = 'Sign In';
+            authSwitchBtn.style.display = 'inline';
+            forgotError.textContent = '';
+        }
+
+        function showReset() {
+            currentMode = 'reset';
+            loginForm.classList.remove('active');
+            signupForm.classList.remove('active');
+            verifyForm.classList.remove('active');
+            forgotForm.classList.remove('active');
+            resetForm.classList.add('active');
+            pageSubtitle.textContent = 'Create new password';
+            authSwitchText.textContent = 'Back to';
+            authSwitchBtn.textContent = 'Sign In';
+            authSwitchBtn.style.display = 'inline';
+            resetError.textContent = '';
+            resetSuccess.textContent = '';
+        }
+
+        authSwitchBtn.addEventListener('click', () => {
+            if (currentMode === 'login') {
+                showSignup();
+            } else {
+                showLogin();
+            }
+        });
+
+        forgotPasswordBtn.addEventListener('click', () => {
+            showForgot();
+        });
+
+        // Login
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            loginError.textContent = '';
+
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: email,
+                Password: password
+            });
+
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool
+            });
+
+            cognitoUser.authenticateUser(authDetails, {
+                onSuccess: (result) => {
+                    window.location.href = 'index.html';
+                },
+                onFailure: (err) => {
+                    loginError.textContent = err.message || 'Login failed';
+                }
+            });
+        });
+
+        // Signup
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirm = document.getElementById('signupPasswordConfirm').value;
+            signupError.textContent = '';
+
+            if (password !== confirm) {
+                signupError.textContent = 'Passwords do not match';
+                return;
+            }
+
+            const attributeList = [
+                new AmazonCognitoIdentity.CognitoUserAttribute({
+                    Name: 'email',
+                    Value: email
+                })
+            ];
+
+            userPool.signUp(email, password, attributeList, null, (err, result) => {
+                if (err) {
+                    signupError.textContent = err.message || 'Signup failed';
+                    return;
+                }
+                pendingUsername = email;
+                showVerify();
+            });
+        });
+
+        // Verify
+        verifyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('verifyCode').value;
+            verifyError.textContent = '';
+
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: pendingUsername,
+                Pool: userPool
+            });
+
+            cognitoUser.confirmRegistration(code, true, (err, result) => {
+                if (err) {
+                    verifyError.textContent = err.message || 'Verification failed';
+                    return;
+                }
+                document.getElementById('loginEmail').value = pendingUsername;
+                showLogin();
+            });
+        });
+
+        // Forgot Password
+        forgotForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            forgotError.textContent = '';
+
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool
+            });
+
+            cognitoUser.forgotPassword({
+                onSuccess: () => {
+                    pendingUsername = email;
+                    showReset();
+                },
+                onFailure: (err) => {
+                    forgotError.textContent = err.message || 'Failed to send reset code';
+                },
+                inputVerificationCode: () => {
+                    pendingUsername = email;
+                    showReset();
+                }
+            });
+        });
+
+        // Reset Password
+        resetForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('resetCode').value;
+            const newPassword = document.getElementById('resetPassword').value;
+            const confirmPassword = document.getElementById('resetPasswordConfirm').value;
+            resetError.textContent = '';
+            resetSuccess.textContent = '';
+
+            if (newPassword !== confirmPassword) {
+                resetError.textContent = 'Passwords do not match';
+                return;
+            }
+
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: pendingUsername,
+                Pool: userPool
+            });
+
+            cognitoUser.confirmPassword(code, newPassword, {
+                onSuccess: () => {
+                    resetSuccess.textContent = 'Password reset successful!';
+                    setTimeout(() => {
+                        document.getElementById('loginEmail').value = pendingUsername;
+                        showLogin();
+                    }, 1500);
+                },
+                onFailure: (err) => {
+                    resetError.textContent = err.message || 'Failed to reset password';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

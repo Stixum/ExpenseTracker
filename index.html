@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1>Expense Tracker</h1>
+                <button id="helpBtn" class="help-btn" title="Take a tour">?</button>
+            </div>
+            <div class="header-center">
+                <div class="month-selector">
+                    <button id="prevMonth" class="nav-btn">&lt;</button>
+                    <span id="currentMonth">January 2026</span>
+                    <button id="nextMonth" class="nav-btn">&gt;</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="addExpenseBtn" class="btn primary">+ Add Expense</button>
+                <button id="manageRecurringBtn" class="btn secondary">Recurring</button>
+                <button id="applyRecurringBtn" class="btn secondary">Apply</button>
+                <div class="user-menu" style="display: none;">
+                    <span id="userEmail"></span>
+                    <button id="logoutBtn" class="btn logout">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="expenses-section">
+                <h2>Expenses</h2>
+                <div id="expensesList" class="expenses-list">
+                    <!-- Expenses grouped by category will be rendered here -->
+                </div>
+            </section>
+
+            <aside class="summary-sidebar">
+                <div class="card total">
+                    <h3>Total Expenses</h3>
+                    <p id="totalExpenses">$0.00</p>
+                </div>
+                <div class="card sean">
+                    <h3>Sean</h3>
+                    <p>Paid: <span id="seanPaid">$0.00</span></p>
+                    <p>Owes Buffy: <span id="seanOwes">$0.00</span></p>
+                </div>
+                <div class="card buffy">
+                    <h3>Buffy</h3>
+                    <p>Paid: <span id="buffyPaid">$0.00</span></p>
+                    <p>Owes Sean: <span id="buffyOwes">$0.00</span></p>
+                </div>
+                <div class="card settlement">
+                    <h3>Settlement</h3>
+                    <p id="settlementText">All settled up!</p>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Add/Edit Expense Modal -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <h2 id="expenseModalTitle">Add Expense</h2>
+            <form id="expenseForm">
+                <input type="hidden" id="expenseId">
+
+                <div class="form-group">
+                    <label for="expenseDate">Date</label>
+                    <input type="date" id="expenseDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="expenseDescription">Description</label>
+                    <input type="text" id="expenseDescription" required placeholder="e.g., Electric Bill">
+                </div>
+
+                <div class="form-group">
+                    <label for="expenseAmount">Amount</label>
+                    <input type="number" id="expenseAmount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="expenseCategory">Category</label>
+                    <select id="expenseCategory" required>
+                        <!-- Categories will be populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Paid By</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-value="Sean" id="paidBySean">Sean</button>
+                        <button type="button" class="toggle-btn" data-value="Buffy" id="paidByBuffy">Buffy</button>
+                    </div>
+                    <input type="hidden" id="expensePaidBy" value="Sean">
+                </div>
+
+                <div class="form-group">
+                    <label>Shared Expense?</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-btn active" data-value="true" id="sharedYes">Yes</button>
+                        <button type="button" class="toggle-btn" data-value="false" id="sharedNo">No</button>
+                    </div>
+                    <input type="hidden" id="expenseShared" value="true">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" id="cancelExpense">Cancel</button>
+                    <button type="submit" class="btn primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recurring Templates Modal -->
+    <div id="recurringModal" class="modal">
+        <div class="modal-content wide">
+            <h2>Recurring Templates</h2>
+
+            <div id="recurringList" class="recurring-list">
+                <!-- Recurring templates will be rendered here -->
+            </div>
+
+            <h3>Add New Template</h3>
+            <form id="recurringForm">
+                <input type="hidden" id="recurringId">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recurringDescription">Description</label>
+                        <input type="text" id="recurringDescription" required placeholder="e.g., Mortgage">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recurringAmount">Amount</label>
+                        <input type="number" id="recurringAmount" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recurringDay">Day of Month</label>
+                        <input type="number" id="recurringDay" min="1" max="31" required placeholder="1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recurringCategory">Category</label>
+                        <select id="recurringCategory" required>
+                            <!-- Categories will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Paid By</label>
+                        <div class="toggle-group">
+                            <button type="button" class="toggle-btn active" data-value="Sean" id="recPaidBySean">Sean</button>
+                            <button type="button" class="toggle-btn" data-value="Buffy" id="recPaidByBuffy">Buffy</button>
+                        </div>
+                        <input type="hidden" id="recurringPaidBy" value="Sean">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Shared?</label>
+                        <div class="toggle-group">
+                            <button type="button" class="toggle-btn active" data-value="true" id="recSharedYes">Yes</button>
+                            <button type="button" class="toggle-btn" data-value="false" id="recSharedNo">No</button>
+                        </div>
+                        <input type="hidden" id="recurringShared" value="true">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" id="closeRecurring">Close</button>
+                    <button type="submit" class="btn primary">Add Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Interactive Tour Overlay -->
+    <div id="tourOverlay" class="tour-overlay">
+        <div class="tour-spotlight"></div>
+        <div id="tourTooltip" class="tour-tooltip">
+            <div class="tour-tooltip-content">
+                <h3 id="tourTitle">Welcome</h3>
+                <p id="tourText">Tour text here</p>
+            </div>
+            <div class="tour-tooltip-footer">
+                <div class="tour-progress">
+                    <span id="tourStep">1</span> of <span id="tourTotal">5</span>
+                </div>
+                <div class="tour-buttons">
+                    <button id="tourSkip" class="tour-btn skip">Skip</button>
+                    <button id="tourPrev" class="tour-btn prev">Back</button>
+                    <button id="tourNext" class="tour-btn next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
