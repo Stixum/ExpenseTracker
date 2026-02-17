@@ -161,7 +161,7 @@
             </div>
 
             <!-- Login Form -->
-            <form id="loginForm" class="auth-form active" autocomplete="on">
+            <form id="loginForm" class="auth-form active" autocomplete="on" method="post" action="#">
                 <div class="form-group">
                     <label for="loginEmail">Email</label>
                     <input type="email" id="loginEmail" name="email" required placeholder="your@email.com" autocomplete="email">
@@ -178,7 +178,7 @@
             </form>
 
             <!-- Signup Form -->
-            <form id="signupForm" class="auth-form" autocomplete="on">
+            <form id="signupForm" class="auth-form" autocomplete="on" method="post" action="#">
                 <div class="form-group">
                     <label for="signupEmail">Email</label>
                     <input type="email" id="signupEmail" name="email" required placeholder="your@email.com" autocomplete="email">
@@ -196,7 +196,7 @@
             </form>
 
             <!-- Verification Form -->
-            <form id="verifyForm" class="auth-form" autocomplete="off">
+            <form id="verifyForm" class="auth-form" autocomplete="off" method="post" action="#">
                 <p class="auth-message">We sent a verification code to your email.</p>
                 <div class="form-group">
                     <label for="verifyCode">Verification Code</label>
@@ -207,7 +207,7 @@
             </form>
 
             <!-- Forgot Password Form -->
-            <form id="forgotForm" class="auth-form" autocomplete="on">
+            <form id="forgotForm" class="auth-form" autocomplete="on" method="post" action="#">
                 <p class="auth-message">Enter your email and we'll send you a reset code.</p>
                 <div class="form-group">
                     <label for="forgotEmail">Email</label>
@@ -218,7 +218,7 @@
             </form>
 
             <!-- Reset Password Form -->
-            <form id="resetForm" class="auth-form" autocomplete="on">
+            <form id="resetForm" class="auth-form" autocomplete="on" method="post" action="#">
                 <p class="auth-message">Enter the code from your email and your new password.</p>
                 <div class="form-group">
                     <label for="resetCode">Reset Code</label>
@@ -257,258 +257,284 @@
             UserPoolId: AWS_CONFIG.userPoolId,
             ClientId: AWS_CONFIG.clientId
         };
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+        const authFormIds = ['loginForm', 'signupForm', 'verifyForm', 'forgotForm', 'resetForm'];
 
-        // Check if already logged in
-        const currentUser = userPool.getCurrentUser();
-        if (currentUser) {
-            currentUser.getSession((err, session) => {
-                if (!err && session.isValid()) {
-                    window.location.href = 'index.html';
-                }
-            });
-        }
-
-        // DOM Elements
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const verifyForm = document.getElementById('verifyForm');
-        const forgotForm = document.getElementById('forgotForm');
-        const resetForm = document.getElementById('resetForm');
-        const loginError = document.getElementById('loginError');
-        const signupError = document.getElementById('signupError');
-        const verifyError = document.getElementById('verifyError');
-        const forgotError = document.getElementById('forgotError');
-        const resetError = document.getElementById('resetError');
-        const resetSuccess = document.getElementById('resetSuccess');
-        const authSwitchBtn = document.getElementById('authSwitchBtn');
-        const authSwitchText = document.getElementById('authSwitchText');
-        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
-        const pageTitle = document.getElementById('pageTitle');
-        const pageSubtitle = document.getElementById('pageSubtitle');
-
-        let pendingUsername = null;
-        let currentMode = 'login';
-
-        function showLogin() {
-            currentMode = 'login';
-            loginForm.classList.add('active');
-            signupForm.classList.remove('active');
-            verifyForm.classList.remove('active');
-            forgotForm.classList.remove('active');
-            resetForm.classList.remove('active');
-            pageSubtitle.textContent = 'Sign in to your account';
-            authSwitchText.textContent = "Don't have an account?";
-            authSwitchBtn.textContent = 'Sign Up';
-            authSwitchBtn.style.display = 'inline';
-            loginError.textContent = '';
-        }
-
-        function showSignup() {
-            currentMode = 'signup';
-            loginForm.classList.remove('active');
-            signupForm.classList.add('active');
-            verifyForm.classList.remove('active');
-            forgotForm.classList.remove('active');
-            resetForm.classList.remove('active');
-            pageSubtitle.textContent = 'Create your account';
-            authSwitchText.textContent = 'Already have an account?';
-            authSwitchBtn.textContent = 'Sign In';
-            authSwitchBtn.style.display = 'inline';
-            signupError.textContent = '';
-        }
-
-        function showVerify() {
-            currentMode = 'verify';
-            loginForm.classList.remove('active');
-            signupForm.classList.remove('active');
-            verifyForm.classList.add('active');
-            forgotForm.classList.remove('active');
-            resetForm.classList.remove('active');
-            pageSubtitle.textContent = 'Verify your email';
-            authSwitchText.textContent = 'Back to';
-            authSwitchBtn.textContent = 'Sign In';
-            authSwitchBtn.style.display = 'inline';
-            verifyError.textContent = '';
-        }
-
-        function showForgot() {
-            currentMode = 'forgot';
-            loginForm.classList.remove('active');
-            signupForm.classList.remove('active');
-            verifyForm.classList.remove('active');
-            forgotForm.classList.add('active');
-            resetForm.classList.remove('active');
-            pageSubtitle.textContent = 'Reset your password';
-            authSwitchText.textContent = 'Back to';
-            authSwitchBtn.textContent = 'Sign In';
-            authSwitchBtn.style.display = 'inline';
-            forgotError.textContent = '';
-        }
-
-        function showReset() {
-            currentMode = 'reset';
-            loginForm.classList.remove('active');
-            signupForm.classList.remove('active');
-            verifyForm.classList.remove('active');
-            forgotForm.classList.remove('active');
-            resetForm.classList.add('active');
-            pageSubtitle.textContent = 'Create new password';
-            authSwitchText.textContent = 'Back to';
-            authSwitchBtn.textContent = 'Sign In';
-            authSwitchBtn.style.display = 'inline';
-            resetError.textContent = '';
-            resetSuccess.textContent = '';
-        }
-
-        authSwitchBtn.addEventListener('click', () => {
-            if (currentMode === 'login') {
-                showSignup();
-            } else {
-                showLogin();
+        // Safety net: never allow native browser submission for auth forms.
+        document.addEventListener('submit', (e) => {
+            const form = e.target;
+            if (form && authFormIds.includes(form.id)) {
+                e.preventDefault();
             }
-        });
+        }, true);
 
-        forgotPasswordBtn.addEventListener('click', () => {
-            showForgot();
-        });
-
-        // Login
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            loginError.textContent = '';
-
-            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-                Username: email,
-                Password: password
-            });
-
-            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: email,
-                Pool: userPool
-            });
-
-            cognitoUser.authenticateUser(authDetails, {
-                onSuccess: (result) => {
-                    window.location.href = 'index.html';
-                },
-                onFailure: (err) => {
-                    loginError.textContent = err.message || 'Login failed';
-                }
-            });
-        });
-
-        // Signup
-        signupForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const confirm = document.getElementById('signupPasswordConfirm').value;
-            signupError.textContent = '';
-
-            if (password !== confirm) {
-                signupError.textContent = 'Passwords do not match';
-                return;
+        if (!window.AmazonCognitoIdentity) {
+            const loginError = document.getElementById('loginError');
+            if (loginError) {
+                loginError.textContent = 'Authentication service unavailable. Please reload and try again.';
             }
 
-            const attributeList = [
-                new AmazonCognitoIdentity.CognitoUserAttribute({
-                    Name: 'email',
-                    Value: email
-                })
-            ];
+            authFormIds.forEach((formId) => {
+                const form = document.getElementById(formId);
+                if (!form) return;
+                form.querySelectorAll('button[type="submit"]').forEach((button) => {
+                    button.disabled = true;
+                    button.title = 'Authentication service unavailable';
+                });
+            });
+        } else {
+            const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
-            userPool.signUp(email, password, attributeList, null, (err, result) => {
-                if (err) {
-                    signupError.textContent = err.message || 'Signup failed';
+            // Check if already logged in
+            const currentUser = userPool.getCurrentUser();
+            if (currentUser) {
+                currentUser.getSession((err, session) => {
+                    if (!err && session.isValid()) {
+                        window.location.href = 'index.html';
+                    }
+                });
+            }
+
+            // DOM Elements
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const verifyForm = document.getElementById('verifyForm');
+            const forgotForm = document.getElementById('forgotForm');
+            const resetForm = document.getElementById('resetForm');
+            const loginError = document.getElementById('loginError');
+            const signupError = document.getElementById('signupError');
+            const verifyError = document.getElementById('verifyError');
+            const forgotError = document.getElementById('forgotError');
+            const resetError = document.getElementById('resetError');
+            const resetSuccess = document.getElementById('resetSuccess');
+            const authSwitchBtn = document.getElementById('authSwitchBtn');
+            const authSwitchText = document.getElementById('authSwitchText');
+            const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+            const pageTitle = document.getElementById('pageTitle');
+            const pageSubtitle = document.getElementById('pageSubtitle');
+
+            let pendingUsername = null;
+            let currentMode = 'login';
+
+            function showLogin() {
+                currentMode = 'login';
+                loginForm.classList.add('active');
+                signupForm.classList.remove('active');
+                verifyForm.classList.remove('active');
+                forgotForm.classList.remove('active');
+                resetForm.classList.remove('active');
+                pageSubtitle.textContent = 'Sign in to your account';
+                authSwitchText.textContent = "Don't have an account?";
+                authSwitchBtn.textContent = 'Sign Up';
+                authSwitchBtn.style.display = 'inline';
+                loginError.textContent = '';
+            }
+
+            function showSignup() {
+                currentMode = 'signup';
+                loginForm.classList.remove('active');
+                signupForm.classList.add('active');
+                verifyForm.classList.remove('active');
+                forgotForm.classList.remove('active');
+                resetForm.classList.remove('active');
+                pageSubtitle.textContent = 'Create your account';
+                authSwitchText.textContent = 'Already have an account?';
+                authSwitchBtn.textContent = 'Sign In';
+                authSwitchBtn.style.display = 'inline';
+                signupError.textContent = '';
+            }
+
+            function showVerify() {
+                currentMode = 'verify';
+                loginForm.classList.remove('active');
+                signupForm.classList.remove('active');
+                verifyForm.classList.add('active');
+                forgotForm.classList.remove('active');
+                resetForm.classList.remove('active');
+                pageSubtitle.textContent = 'Verify your email';
+                authSwitchText.textContent = 'Back to';
+                authSwitchBtn.textContent = 'Sign In';
+                authSwitchBtn.style.display = 'inline';
+                verifyError.textContent = '';
+            }
+
+            function showForgot() {
+                currentMode = 'forgot';
+                loginForm.classList.remove('active');
+                signupForm.classList.remove('active');
+                verifyForm.classList.remove('active');
+                forgotForm.classList.add('active');
+                resetForm.classList.remove('active');
+                pageSubtitle.textContent = 'Reset your password';
+                authSwitchText.textContent = 'Back to';
+                authSwitchBtn.textContent = 'Sign In';
+                authSwitchBtn.style.display = 'inline';
+                forgotError.textContent = '';
+            }
+
+            function showReset() {
+                currentMode = 'reset';
+                loginForm.classList.remove('active');
+                signupForm.classList.remove('active');
+                verifyForm.classList.remove('active');
+                forgotForm.classList.remove('active');
+                resetForm.classList.add('active');
+                pageSubtitle.textContent = 'Create new password';
+                authSwitchText.textContent = 'Back to';
+                authSwitchBtn.textContent = 'Sign In';
+                authSwitchBtn.style.display = 'inline';
+                resetError.textContent = '';
+                resetSuccess.textContent = '';
+            }
+
+            authSwitchBtn.addEventListener('click', () => {
+                if (currentMode === 'login') {
+                    showSignup();
+                } else {
+                    showLogin();
+                }
+            });
+
+            forgotPasswordBtn.addEventListener('click', () => {
+                showForgot();
+            });
+
+            // Login
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                loginError.textContent = '';
+
+                const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                    Username: email,
+                    Password: password
+                });
+
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                    Username: email,
+                    Pool: userPool
+                });
+
+                cognitoUser.authenticateUser(authDetails, {
+                    onSuccess: (result) => {
+                        window.location.href = 'index.html';
+                    },
+                    onFailure: (err) => {
+                        loginError.textContent = err.message || 'Login failed';
+                    }
+                });
+            });
+
+            // Signup
+            signupForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+                const confirm = document.getElementById('signupPasswordConfirm').value;
+                signupError.textContent = '';
+
+                if (password !== confirm) {
+                    signupError.textContent = 'Passwords do not match';
                     return;
                 }
-                pendingUsername = email;
-                showVerify();
+
+                const attributeList = [
+                    new AmazonCognitoIdentity.CognitoUserAttribute({
+                        Name: 'email',
+                        Value: email
+                    })
+                ];
+
+                userPool.signUp(email, password, attributeList, null, (err, result) => {
+                    if (err) {
+                        signupError.textContent = err.message || 'Signup failed';
+                        return;
+                    }
+                    pendingUsername = email;
+                    showVerify();
+                });
             });
-        });
 
-        // Verify
-        verifyForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const code = document.getElementById('verifyCode').value;
-            verifyError.textContent = '';
+            // Verify
+            verifyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const code = document.getElementById('verifyCode').value;
+                verifyError.textContent = '';
 
-            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: pendingUsername,
-                Pool: userPool
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                    Username: pendingUsername,
+                    Pool: userPool
+                });
+
+                cognitoUser.confirmRegistration(code, true, (err, result) => {
+                    if (err) {
+                        verifyError.textContent = err.message || 'Verification failed';
+                        return;
+                    }
+                    document.getElementById('loginEmail').value = pendingUsername;
+                    showLogin();
+                });
             });
 
-            cognitoUser.confirmRegistration(code, true, (err, result) => {
-                if (err) {
-                    verifyError.textContent = err.message || 'Verification failed';
+            // Forgot Password
+            forgotForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('forgotEmail').value;
+                forgotError.textContent = '';
+
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                    Username: email,
+                    Pool: userPool
+                });
+
+                cognitoUser.forgotPassword({
+                    onSuccess: () => {
+                        pendingUsername = email;
+                        showReset();
+                    },
+                    onFailure: (err) => {
+                        forgotError.textContent = err.message || 'Failed to send reset code';
+                    },
+                    inputVerificationCode: () => {
+                        pendingUsername = email;
+                        showReset();
+                    }
+                });
+            });
+
+            // Reset Password
+            resetForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const code = document.getElementById('resetCode').value;
+                const newPassword = document.getElementById('resetPassword').value;
+                const confirmPassword = document.getElementById('resetPasswordConfirm').value;
+                resetError.textContent = '';
+                resetSuccess.textContent = '';
+
+                if (newPassword !== confirmPassword) {
+                    resetError.textContent = 'Passwords do not match';
                     return;
                 }
-                document.getElementById('loginEmail').value = pendingUsername;
-                showLogin();
+
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                    Username: pendingUsername,
+                    Pool: userPool
+                });
+
+                cognitoUser.confirmPassword(code, newPassword, {
+                    onSuccess: () => {
+                        resetSuccess.textContent = 'Password reset successful!';
+                        setTimeout(() => {
+                            document.getElementById('loginEmail').value = pendingUsername;
+                            showLogin();
+                        }, 1500);
+                    },
+                    onFailure: (err) => {
+                        resetError.textContent = err.message || 'Failed to reset password';
+                    }
+                });
             });
-        });
-
-        // Forgot Password
-        forgotForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('forgotEmail').value;
-            forgotError.textContent = '';
-
-            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: email,
-                Pool: userPool
-            });
-
-            cognitoUser.forgotPassword({
-                onSuccess: () => {
-                    pendingUsername = email;
-                    showReset();
-                },
-                onFailure: (err) => {
-                    forgotError.textContent = err.message || 'Failed to send reset code';
-                },
-                inputVerificationCode: () => {
-                    pendingUsername = email;
-                    showReset();
-                }
-            });
-        });
-
-        // Reset Password
-        resetForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const code = document.getElementById('resetCode').value;
-            const newPassword = document.getElementById('resetPassword').value;
-            const confirmPassword = document.getElementById('resetPasswordConfirm').value;
-            resetError.textContent = '';
-            resetSuccess.textContent = '';
-
-            if (newPassword !== confirmPassword) {
-                resetError.textContent = 'Passwords do not match';
-                return;
-            }
-
-            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: pendingUsername,
-                Pool: userPool
-            });
-
-            cognitoUser.confirmPassword(code, newPassword, {
-                onSuccess: () => {
-                    resetSuccess.textContent = 'Password reset successful!';
-                    setTimeout(() => {
-                        document.getElementById('loginEmail').value = pendingUsername;
-                        showLogin();
-                    }, 1500);
-                },
-                onFailure: (err) => {
-                    resetError.textContent = err.message || 'Failed to reset password';
-                }
-            });
-        });
+        }
     </script>
 </body>
 </html>
