@@ -336,7 +336,6 @@ header {
     backdrop-filter: var(--glass-blur);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
-    overflow: hidden;
 }
 
 .category-header {
@@ -355,6 +354,12 @@ header {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-weight: 700;
+}
+
+.expense-items-container {
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .expense-item {
@@ -378,7 +383,7 @@ header {
     color: var(--text-secondary);
     font-size: 0.8rem;
     font-weight: 500;
-    min-width: 32px;
+    min-width: 56px;
     text-align: center;
     padding: 4px 8px;
     background: var(--bg-card);

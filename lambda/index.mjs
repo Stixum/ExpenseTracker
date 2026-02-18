@@ -7,6 +7,9 @@ const docClient = DynamoDBDocumentClient.from(client);
 const EXPENSES_TABLE = 'ExpenseTracker-Expenses';
 const RECURRING_TABLE = 'ExpenseTracker-Recurring';
 
+// Shared household ID - all users share this partition
+const HOUSEHOLD_ID = 'buffy-sean-household';
+
 // CORS headers
 const headers = {
     'Content-Type': 'application/json',
@@ -29,9 +32,11 @@ export const handler = async (event) => {
         return { statusCode: 200, headers, body: '' };
     }
 
-    // Get userId from JWT authorizer
+    // Get userId and email from JWT authorizer (for tracking who created entries)
     const userId = event.requestContext?.authorizer?.jwt?.claims?.sub ||
                    event.requestContext?.authorizer?.claims?.sub;
+    const userEmail = event.requestContext?.authorizer?.jwt?.claims?.email ||
+                      event.requestContext?.authorizer?.claims?.email || userId;
 
     if (!userId) {
         console.log('No userId found in event');
@@ -51,8 +56,8 @@ export const handler = async (event) => {
 
             const result = await docClient.send(new QueryCommand({
                 TableName: EXPENSES_TABLE,
-                KeyConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues: { ':userId': userId }
+                KeyConditionExpression: 'userId = :householdId',
+                ExpressionAttributeValues: { ':householdId': HOUSEHOLD_ID }
             }));
 
             let expenses = (result.Items || []).map(item => ({
@@ -63,7 +68,8 @@ export const handler = async (event) => {
                 category: item.category,
                 paidBy: item.paidBy,
                 shared: item.shared,
-                recurringId: item.recurringId
+                recurringId: item.recurringId,
+                createdBy: item.createdBy
             }));
 
             // Filter by month if provided
@@ -86,7 +92,7 @@ export const handler = async (event) => {
             await docClient.send(new PutCommand({
                 TableName: EXPENSES_TABLE,
                 Item: {
-                    userId,
+                    userId: HOUSEHOLD_ID,
                     expenseId,
                     date: body.date,
                     description: body.description,
@@ -94,7 +100,8 @@ export const handler = async (event) => {
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    recurringId: body.recurringId || null
+                    recurringId: body.recurringId || null,
+                    createdBy: userEmail
                 }
             }));
 
@@ -109,7 +116,8 @@ export const handler = async (event) => {
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    recurringId: body.recurringId || null
+                    recurringId: body.recurringId || null,
+                    createdBy: userEmail
                 })
             };
         }
@@ -122,7 +130,7 @@ export const handler = async (event) => {
             await docClient.send(new PutCommand({
                 TableName: EXPENSES_TABLE,
                 Item: {
-                    userId,
+                    userId: HOUSEHOLD_ID,
                     expenseId,
                     date: body.date,
                     description: body.description,
@@ -130,7 +138,8 @@ export const handler = async (event) => {
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    recurringId: body.recurringId || null
+                    recurringId: body.recurringId || null,
+                    createdBy: body.createdBy || userEmail
                 }
             }));
 
@@ -144,7 +153,8 @@ export const handler = async (event) => {
                     amount: parseFloat(body.amount),
                     category: body.category,
                     paidBy: body.paidBy,
-                    shared: body.shared
+                    shared: body.shared,
+                    createdBy: body.createdBy || userEmail
                 })
             };
         }
@@ -155,7 +165,7 @@ export const handler = async (event) => {
 
             await docClient.send(new DeleteCommand({
                 TableName: EXPENSES_TABLE,
-                Key: { userId, expenseId }
+                Key: { userId: HOUSEHOLD_ID, expenseId }
             }));
 
             return {
@@ -171,8 +181,8 @@ export const handler = async (event) => {
         if (method === 'GET' && path === '/recurring') {
             const result = await docClient.send(new QueryCommand({
                 TableName: RECURRING_TABLE,
-                KeyConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues: { ':userId': userId }
+                KeyConditionExpression: 'userId = :householdId',
+                ExpressionAttributeValues: { ':householdId': HOUSEHOLD_ID }
             }));
 
             const templates = (result.Items || []).map(item => ({
@@ -182,7 +192,8 @@ export const handler = async (event) => {
                 category: item.category,
                 paidBy: item.paidBy,
                 shared: item.shared,
-                dayOfMonth: item.dayOfMonth
+                dayOfMonth: item.dayOfMonth,
+                createdBy: item.createdBy
             }));
 
             return {
@@ -200,14 +211,15 @@ export const handler = async (event) => {
             await docClient.send(new PutCommand({
                 TableName: RECURRING_TABLE,
                 Item: {
-                    userId,
+                    userId: HOUSEHOLD_ID,
                     recurringId,
                     description: body.description,
                     amount: parseFloat(body.amount),
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    dayOfMonth: parseInt(body.dayOfMonth)
+                    dayOfMonth: parseInt(body.dayOfMonth),
+                    createdBy: userEmail
                 }
             }));
 
@@ -221,7 +233,8 @@ export const handler = async (event) => {
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    dayOfMonth: parseInt(body.dayOfMonth)
+                    dayOfMonth: parseInt(body.dayOfMonth),
+                    createdBy: userEmail
                 })
             };
         }
@@ -234,14 +247,15 @@ export const handler = async (event) => {
             await docClient.send(new PutCommand({
                 TableName: RECURRING_TABLE,
                 Item: {
-                    userId,
+                    userId: HOUSEHOLD_ID,
                     recurringId,
                     description: body.description,
                     amount: parseFloat(body.amount),
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    dayOfMonth: parseInt(body.dayOfMonth)
+                    dayOfMonth: parseInt(body.dayOfMonth),
+                    createdBy: body.createdBy || userEmail
                 }
             }));
 
@@ -255,7 +269,8 @@ export const handler = async (event) => {
                     category: body.category,
                     paidBy: body.paidBy,
                     shared: body.shared,
-                    dayOfMonth: parseInt(body.dayOfMonth)
+                    dayOfMonth: parseInt(body.dayOfMonth),
+                    createdBy: body.createdBy || userEmail
                 })
             };
         }
@@ -266,7 +281,7 @@ export const handler = async (event) => {
 
             await docClient.send(new DeleteCommand({
                 TableName: RECURRING_TABLE,
-                Key: { userId, recurringId }
+                Key: { userId: HOUSEHOLD_ID, recurringId }
             }));
 
             return {
@@ -291,16 +306,16 @@ export const handler = async (event) => {
             // Get recurring templates
             const recurringResult = await docClient.send(new QueryCommand({
                 TableName: RECURRING_TABLE,
-                KeyConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues: { ':userId': userId }
+                KeyConditionExpression: 'userId = :householdId',
+                ExpressionAttributeValues: { ':householdId': HOUSEHOLD_ID }
             }));
             const templates = recurringResult.Items || [];
 
             // Get existing expenses for this month
             const expensesResult = await docClient.send(new QueryCommand({
                 TableName: EXPENSES_TABLE,
-                KeyConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues: { ':userId': userId }
+                KeyConditionExpression: 'userId = :householdId',
+                ExpressionAttributeValues: { ':householdId': HOUSEHOLD_ID }
             }));
             const existingExpenses = (expensesResult.Items || []).filter(
                 exp => exp.date.startsWith(month)
@@ -323,7 +338,7 @@ export const handler = async (event) => {
 
                     const expenseId = randomUUID();
                     const expense = {
-                        userId,
+                        userId: HOUSEHOLD_ID,
                         expenseId,
                         date,
                         description: template.description,
@@ -331,7 +346,8 @@ export const handler = async (event) => {
                         category: template.category,
                         paidBy: template.paidBy,
                         shared: template.shared,
-                        recurringId: template.recurringId
+                        recurringId: template.recurringId,
+                        createdBy: userEmail
                     };
 
                     await docClient.send(new PutCommand({
@@ -347,7 +363,8 @@ export const handler = async (event) => {
                         category: template.category,
                         paidBy: template.paidBy,
                         shared: template.shared,
-                        recurringId: template.recurringId
+                        recurringId: template.recurringId,
+                        createdBy: userEmail
                     });
                 }
             }

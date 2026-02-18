@@ -338,7 +338,9 @@ function renderExpenses() {
                     <span>${category}</span>
                     <span class="category-total">${formatCurrency(categoryTotal)}</span>
                 </div>
-                ${grouped[category].map(exp => renderExpenseItem(exp)).join('')}
+                <div class="expense-items-container">
+                    ${grouped[category].map(exp => renderExpenseItem(exp)).join('')}
+                </div>
             </div>
         `;
     }
@@ -348,7 +350,7 @@ function renderExpenses() {
 
 function renderExpenseItem(expense) {
     const date = new Date(expense.date + 'T00:00:00');
-    const dayStr = date.getDate();
+    const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const payerClass = expense.paidBy.toLowerCase();
     const sharedText = expense.shared ? 'Shared' : 'Not shared';
 
